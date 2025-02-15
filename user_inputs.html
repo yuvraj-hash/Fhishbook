@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Inputs (Secure)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      text-align: center;
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .container h1 {
+      font-size: 24px;
+      color: #1877f2;
+      margin-bottom: 20px;
+    }
+    .input-list {
+      text-align: left;
+      margin-bottom: 20px;
+      overflow-y: auto;
+      max-height: 300px;
+      padding-right: 10px;
+    }
+    .input-list p {
+      font-size: 16px;
+      color: #333;
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #f0f2f5;
+      border-radius: 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    .input-list p span {
+      font-weight: bold;
+      color: #1877f2;
+    }
+    .container a {
+      color: #1877f2;
+      text-decoration: none;
+      font-size: 16px;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .container a:hover {
+      text-decoration: underline;
+    }
+    .show-password {
+      background-color: #1877f2;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Inputs</h1>
+    <div class="input-list" id="inputList">
+      <!-- User inputs will be dynamically inserted here -->
+    </div>
+    <button class="show-password" onclick="showPasswords()">Show Passwords</button>
+    <a href="index.html">Go to Homepage</a>
+  </div>
+
+  <script>
+    const secretKey = "MySecretKey123"; // Keep this key consistent for encryption & decryption
+
+    // Encrypt password using AES
+    function encryptPassword(password) {
+      return CryptoJS.AES.encrypt(password, secretKey).toString();
+    }
+
+    // Decrypt password using AES
+    function decryptPassword(encryptedPassword) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+        return bytes.toString(CryptoJS.enc.Utf8);
+      } catch (error) {
+        return "[Decryption Failed]"; // Error Handling
+      }
+    }
+
+    // Retrieve user inputs from localStorage
+    let userInputs = JSON.parse(localStorage.getItem("userInputs")) || [];
+
+    // If passwords were previously stored as plaintext, encrypt them now
+    userInputs.forEach(input => {
+      if (!input.password.startsWith("U2FsdGVkX1")) { // Check if already encrypted
+        input.password = encryptPassword(input.password); // Encrypt plaintext passwords
+      }
+    });
+
+    // Save back the encrypted passwords
+    localStorage.setItem("userInputs", JSON.stringify(userInputs));
+
+    // Display user inputs
+    const inputList = document.getElementById("inputList");
+    userInputs.forEach((input, index) => {
+      const inputEntry = document.createElement("p");
+      inputEntry.innerHTML = `<span>Entry ${index + 1}:</span><br>Username: ${input.username}<br>Password: <span class="password-hidden">******</span>`;
+      inputEntry.setAttribute("data-password", input.password); // Store encrypted password
+      inputList.appendChild(inputEntry);
+    });
+
+    // Show actual passwords when clicking the button
+    function showPasswords() {
+      const passwordElements = document.querySelectorAll(".password-hidden");
+      passwordElements.forEach((el) => {
+        const encryptedPassword = el.parentElement.getAttribute("data-password");
+        const decryptedPassword = decryptPassword(encryptedPassword);
+        el.textContent = decryptedPassword ? decryptedPassword : "[Decryption Failed]";
+      });
+    }
+  </script>
+</body>
+</html>
