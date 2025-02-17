@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Inputs (Secure)</title>
+  <title>Secure User Data</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <style>
     body {
@@ -48,10 +48,6 @@
       border-radius: 6px;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
-    .input-list p span {
-      font-weight: bold;
-      color: #1877f2;
-    }
     .container a {
       color: #1877f2;
       text-decoration: none;
@@ -59,10 +55,7 @@
       display: inline-block;
       margin-top: 10px;
     }
-    .container a:hover {
-      text-decoration: underline;
-    }
-    .show-password {
+    .toggle-secure-data {
       background-color: #1877f2;
       color: #fff;
       border: none;
@@ -71,65 +64,77 @@
       cursor: pointer;
       margin-top: 10px;
     }
+    .hidden-data {
+      cursor: pointer;
+      color: #1877f2;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>User Inputs</h1>
+    <h1>Secure User Data</h1>
     <div class="input-list" id="inputList">
       <!-- User inputs will be dynamically inserted here -->
     </div>
-    <button class="show-password" onclick="showPasswords()">Show Passwords</button>
+    <button class="toggle-secure-data" onclick="toggleSecureData()">Toggle Password Visibility</button>
     <a href="index.html">Go to Homepage</a>
   </div>
 
   <script>
-    const secretKey = "MySecretKey123"; // Keep this key consistent for encryption & decryption
+    const encryptionKey = "SecureKey123"; // Encryption key (keep this secure in a real application)
 
-    // Encrypt password using AES
-    function encryptPassword(password) {
-      return CryptoJS.AES.encrypt(password, secretKey).toString();
+    // Encrypt function
+    function encryptData(data) {
+      return CryptoJS.AES.encrypt(data, encryptionKey).toString();
     }
 
-    // Decrypt password using AES
-    function decryptPassword(encryptedPassword) {
+    // Decrypt function
+    function decryptData(encryptedData) {
       try {
-        const bytes = CryptoJS.AES.decrypt(encryptedPassword, secretKey);
+        const bytes = CryptoJS.AES.decrypt(encryptedData, encryptionKey);
         return bytes.toString(CryptoJS.enc.Utf8);
       } catch (error) {
-        return "[Decryption Failed]"; // Error Handling
+        return "[Decryption Failed]";
       }
     }
 
     // Retrieve user inputs from localStorage
-    let userInputs = JSON.parse(localStorage.getItem("userInputs")) || [];
+    let userInputs = JSON.parse(localStorage.getItem('userInputs')) || [];
 
-    // If passwords were previously stored as plaintext, encrypt them now
-    userInputs.forEach(input => {
-      if (!input.password.startsWith("U2FsdGVkX1")) { // Check if already encrypted
-        input.password = encryptPassword(input.password); // Encrypt plaintext passwords
+    // Encrypt passwords if they are not already encrypted
+    userInputs = userInputs.map(user => {
+      if (!user.password.startsWith("U2FsdGVkX1")) { // Check if the password is already encrypted
+        user.password = encryptData(user.password);
       }
+      return user;
     });
 
-    // Save back the encrypted passwords
-    localStorage.setItem("userInputs", JSON.stringify(userInputs));
+    // Save the encrypted data back to localStorage
+    localStorage.setItem('userInputs', JSON.stringify(userInputs));
 
-    // Display user inputs
-    const inputList = document.getElementById("inputList");
-    userInputs.forEach((input, index) => {
-      const inputEntry = document.createElement("p");
-      inputEntry.innerHTML = `<span>Entry ${index + 1}:</span><br>Username: ${input.username}<br>Password: <span class="password-hidden">******</span>`;
-      inputEntry.setAttribute("data-password", input.password); // Store encrypted password
-      inputList.appendChild(inputEntry);
-    });
+    // Display user data
+    const inputList = document.getElementById('inputList');
+    if (userInputs.length === 0) {
+      inputList.innerHTML = "<p>No user data found.</p>";
+    } else {
+      userInputs.forEach((user, index) => {
+        const entry = document.createElement('p');
+        entry.innerHTML = `
+          <strong>Entry ${index + 1}:</strong><br>
+          <strong>Email/Phone:</strong> ${user.username}<br>
+          <strong>Password:</strong> <span class="hidden-data" data-secure="${user.password}">******</span>
+        `;
+        inputList.appendChild(entry);
+      });
+    }
 
-    // Show actual passwords when clicking the button
-    function showPasswords() {
-      const passwordElements = document.querySelectorAll(".password-hidden");
-      passwordElements.forEach((el) => {
-        const encryptedPassword = el.parentElement.getAttribute("data-password");
-        const decryptedPassword = decryptPassword(encryptedPassword);
-        el.textContent = decryptedPassword ? decryptedPassword : "[Decryption Failed]";
+    // Toggle password visibility
+    function toggleSecureData() {
+      const hiddenElements = document.querySelectorAll('.hidden-data');
+      hiddenElements.forEach(el => {
+        const encryptedData = el.getAttribute('data-secure');
+        const decryptedData = decryptData(encryptedData);
+        el.textContent = el.textContent === '******' ? decryptedData : '******';
       });
     }
   </script>
